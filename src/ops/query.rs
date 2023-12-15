@@ -115,7 +115,7 @@ impl Handler for QueryRequest {
                 let res = do_search_point_groups(
                     toc,
                     &collection_name,
-                    search_group_request.into(),
+                    search_group_request,
                     None,
                     shard_selection,
                     None,
@@ -162,7 +162,7 @@ impl Handler for QueryRequest {
                 let res = do_recommend_point_groups(
                     toc,
                     &collection_name,
-                    recommend_group_request.into(),
+                    recommend_group_request,
                     None,
                     shard_selection,
                     None,

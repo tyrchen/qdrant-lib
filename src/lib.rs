@@ -5,26 +5,24 @@ mod instance;
 mod ops;
 
 use std::backtrace::Backtrace;
+use std::mem::ManuallyDrop;
 use std::panic;
-use std::sync::atomic::AtomicBool;
-use std::sync::Arc;
 use std::thread::JoinHandle;
+use storage::content_manager::toc::TableOfContent;
+use tokio::sync::{mpsc, oneshot};
+use tracing::error;
 
 pub use config::Settings;
 pub use instance::QdrantInstance;
 pub use instance::{QdrantRequest, QdrantResponse};
 pub use ops::*;
 
-use storage::content_manager::toc::TableOfContent;
-use tokio::sync::{mpsc, oneshot};
-use tracing::error;
-
 type QdrantMsg = (QdrantRequest, oneshot::Sender<QdrantResponse>);
 
 #[derive(Debug)]
 pub struct QdrantClient {
-    tx: mpsc::Sender<QdrantMsg>,
-    terminate: Arc<AtomicBool>,
+    tx: ManuallyDrop<mpsc::Sender<QdrantMsg>>,
+    terminated_rx: oneshot::Receiver<()>,
     #[allow(dead_code)]
     handle: JoinHandle<anyhow::Result<()>>,
 }

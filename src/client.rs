@@ -1,14 +1,22 @@
-use std::sync::atomic::Ordering;
+use std::{mem::ManuallyDrop, thread};
 
 use crate::{CollectionRequest, CollectionResponse, QdrantClient, QdrantResponse};
 use anyhow::Result;
 use collection::operations::types::VectorsConfig;
 use storage::content_manager::collection_meta_ops::CreateCollection;
-use tokio::sync::oneshot;
+use tokio::sync::oneshot::{self, error::TryRecvError};
+use tracing::warn;
 
 impl Drop for QdrantClient {
     fn drop(&mut self) {
-        self.terminate.store(true, Ordering::Relaxed);
+        // drop the tx channel to terminate the qdrant thread
+        unsafe {
+            ManuallyDrop::drop(&mut self.tx);
+        }
+        while let Err(TryRecvError::Empty) = self.terminated_rx.try_recv() {
+            warn!("Waiting for qdrant to terminate");
+            thread::sleep(std::time::Duration::from_millis(100));
+        }
     }
 }
 
@@ -31,11 +39,13 @@ impl QdrantClient {
             sparse_vectors: None,
         };
         let msg = CollectionRequest::Create((name.to_string(), data));
-        self.tx.send((msg.into(), tx)).await.unwrap();
-        let res = rx.await.unwrap();
-        match res {
-            QdrantResponse::Collection(CollectionResponse::Create(v)) => Ok(v),
-            _ => panic!("Unexpected response: {:?}", res),
+        if let Err(e) = self.tx.send((msg.into(), tx)).await {
+            warn!("Failed to send request: {:?}", e);
+        }
+        match rx.await {
+            Ok(QdrantResponse::Collection(CollectionResponse::Create(v))) => Ok(v),
+            Err(e) => Err(e.into()),
+            res => panic!("Unexpected response: {:?}", res),
         }
     }
 

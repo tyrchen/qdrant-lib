@@ -6,16 +6,13 @@ use crate::{
 use async_trait::async_trait;
 use collection::shards::channel_service::ChannelService;
 use serde::{Deserialize, Serialize};
-use std::{
-    sync::{
-        atomic::{AtomicBool, Ordering},
-        Arc,
-    },
-    thread,
-};
+use std::{mem::ManuallyDrop, sync::Arc, thread, time::Duration};
 use storage::content_manager::{consensus::persistent::Persistent, toc::TableOfContent};
-use tokio::{runtime::Handle, sync::mpsc};
-use tracing::warn;
+use tokio::{
+    runtime::Handle,
+    sync::{mpsc, oneshot},
+};
+use tracing::{debug, warn};
 
 const QDRANT_CHANNEL_BUFFER: usize = 1024;
 
@@ -39,33 +36,51 @@ pub struct QdrantInstance;
 
 impl QdrantInstance {
     pub fn start(config_path: Option<String>) -> anyhow::Result<QdrantClient> {
-        let (toc, rt) = start_qdrant(config_path)?;
         let (tx, mut rx) = mpsc::channel::<QdrantMsg>(QDRANT_CHANNEL_BUFFER);
 
-        let terminate = Arc::new(AtomicBool::new(false));
-        let terminate_clone = terminate.clone();
+        let (terminated_tx, terminated_rx) = oneshot::channel::<()>();
 
         let handle = thread::Builder::new()
             .name("qdrant".to_string())
             .spawn(move || {
+                let (toc, rt) = start_qdrant(config_path)?;
+                let toc_clone = toc.clone();
                 rt.block_on(async move {
-                    while !terminate_clone.load(Ordering::Relaxed) {
-                        if let Some((msg, tx)) = rx.recv().await {
-                            let res = msg.handle(&toc).await?;
-                            if let Err(e) = tx.send(res) {
-                                warn!("Failed to send response: {:?}", e);
-                            }
+                    while let Some((msg, tx)) = rx.recv().await {
+                        let res = msg.handle(&toc).await?;
+                        if let Err(e) = tx.send(res) {
+                            warn!("Failed to send response: {:?}", e);
                         }
                     }
                     Ok::<(), anyhow::Error>(())
                 })?;
+
+                // clean things up
+                // see this thread: https://github.com/qdrant/qdrant/issues/1316
+                let mut toc_arc = toc_clone;
+                loop {
+                    match Arc::try_unwrap(toc_arc) {
+                        Ok(toc) => {
+                            drop(toc);
+                            if let Err(e) = terminated_tx.send(()) {
+                                warn!("Failed to send termination signal: {:?}", e);
+                            }
+                            break;
+                        }
+                        Err(toc) => {
+                            toc_arc = toc;
+                            warn!("Waiting for ToC to be gracefully dropped");
+                            thread::sleep(Duration::from_millis(300));
+                        }
+                    }
+                }
                 Ok::<(), anyhow::Error>(())
             })
             .unwrap();
         Ok(QdrantClient {
-            tx,
+            tx: ManuallyDrop::new(tx),
             handle,
-            terminate,
+            terminated_rx,
         })
     }
 }
@@ -145,11 +160,11 @@ fn start_qdrant(config_path: Option<String>) -> anyhow::Result<(Arc<TableOfConte
     toc.clear_all_tmp_directories()?;
 
     // Here we load all stored collections.
-    // runtime_handle.block_on(async {
-    //     for collection in toc.all_collections().await {
-    //         debug!("Loaded collection: {}", collection);
-    //     }
-    // });
+    runtime_handle.block_on(async {
+        for collection in toc.all_collections().await {
+            debug!("Loaded collection: {}", collection);
+        }
+    });
 
     Ok((Arc::new(toc), runtime_handle))
 }
