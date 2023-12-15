@@ -1,0 +1,3 @@
+[submodule ".qdrant"]
+	path = .qdrant
+	url = https://github.com/qdrant/qdrant
