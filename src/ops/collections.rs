@@ -85,7 +85,7 @@ pub enum AliasResponse {
 #[async_trait]
 impl Handler for CollectionRequest {
     type Response = CollectionResponse;
-    type Error = anyhow::Error;
+    type Error = StorageError;
 
     async fn handle(self, toc: &TableOfContent) -> Result<Self::Response, Self::Error> {
         match self {
@@ -131,7 +131,7 @@ impl Handler for CollectionRequest {
 #[async_trait]
 impl Handler for AliasRequest {
     type Response = AliasResponse;
-    type Error = anyhow::Error;
+    type Error = StorageError;
 
     async fn handle(self, toc: &TableOfContent) -> Result<Self::Response, Self::Error> {
         match self {

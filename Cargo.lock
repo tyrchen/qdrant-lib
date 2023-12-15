@@ -2657,6 +2657,7 @@ dependencies = [
  "serde_json",
  "storage",
  "tar",
+ "thiserror",
  "tokio",
  "tracing",
  "tracing-subscriber",

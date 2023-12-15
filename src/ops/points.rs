@@ -69,7 +69,7 @@ pub enum PointsResponse {
 #[async_trait]
 impl Handler for PointsRequest {
     type Response = PointsResponse;
-    type Error = anyhow::Error;
+    type Error = StorageError;
 
     async fn handle(self, toc: &TableOfContent) -> Result<Self::Response, Self::Error> {
         match self {

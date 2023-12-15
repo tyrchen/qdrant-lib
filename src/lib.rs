@@ -1,5 +1,6 @@
 mod client;
 mod config;
+mod error;
 mod helpers;
 mod instance;
 mod ops;
@@ -8,23 +9,27 @@ use std::backtrace::Backtrace;
 use std::mem::ManuallyDrop;
 use std::panic;
 use std::thread::JoinHandle;
+use storage::content_manager::errors::StorageError;
 use storage::content_manager::toc::TableOfContent;
 use tokio::sync::{mpsc, oneshot};
 use tracing::error;
 
 pub use config::Settings;
+pub use error::QdrantError;
 pub use instance::QdrantInstance;
 pub use instance::{QdrantRequest, QdrantResponse};
 pub use ops::*;
 
-type QdrantMsg = (QdrantRequest, oneshot::Sender<QdrantResponse>);
+type QdrantMsg = (QdrantRequest, QdrantResponder);
+type QdrantResult = Result<QdrantResponse, StorageError>;
+type QdrantResponder = oneshot::Sender<QdrantResult>;
 
 #[derive(Debug)]
 pub struct QdrantClient {
     tx: ManuallyDrop<mpsc::Sender<QdrantMsg>>,
     terminated_rx: oneshot::Receiver<()>,
     #[allow(dead_code)]
-    handle: JoinHandle<anyhow::Result<()>>,
+    handle: JoinHandle<Result<(), QdrantError>>,
 }
 
 #[async_trait::async_trait]

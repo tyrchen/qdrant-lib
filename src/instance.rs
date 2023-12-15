@@ -1,13 +1,15 @@
 use crate::{
     helpers::{create_general_purpose_runtime, create_search_runtime, create_update_runtime},
     AliasRequest, AliasResponse, CollectionRequest, CollectionResponse, Handler, PointsRequest,
-    PointsResponse, QdrantClient, QdrantMsg, QueryRequest, QueryResponse, Settings,
+    PointsResponse, QdrantClient, QdrantError, QdrantMsg, QueryRequest, QueryResponse, Settings,
 };
 use async_trait::async_trait;
 use collection::shards::channel_service::ChannelService;
 use serde::{Deserialize, Serialize};
 use std::{mem::ManuallyDrop, sync::Arc, thread, time::Duration};
-use storage::content_manager::{consensus::persistent::Persistent, toc::TableOfContent};
+use storage::content_manager::{
+    consensus::persistent::Persistent, errors::StorageError, toc::TableOfContent,
+};
 use tokio::{
     runtime::Handle,
     sync::{mpsc, oneshot},
@@ -35,7 +37,7 @@ pub enum QdrantResponse {
 pub struct QdrantInstance;
 
 impl QdrantInstance {
-    pub fn start(config_path: Option<String>) -> anyhow::Result<QdrantClient> {
+    pub fn start(config_path: Option<String>) -> Result<QdrantClient, QdrantError> {
         let (tx, mut rx) = mpsc::channel::<QdrantMsg>(QDRANT_CHANNEL_BUFFER);
 
         let (terminated_tx, terminated_rx) = oneshot::channel::<()>();
@@ -46,13 +48,13 @@ impl QdrantInstance {
                 let (toc, rt) = start_qdrant(config_path)?;
                 let toc_clone = toc.clone();
                 rt.block_on(async move {
-                    while let Some((msg, tx)) = rx.recv().await {
-                        let res = msg.handle(&toc).await?;
-                        if let Err(e) = tx.send(res) {
+                    while let Some((msg, resp_sender)) = rx.recv().await {
+                        let res = msg.handle(&toc).await;
+                        if let Err(e) = resp_sender.send(res) {
                             warn!("Failed to send response: {:?}", e);
                         }
                     }
-                    Ok::<(), anyhow::Error>(())
+                    Ok::<(), QdrantError>(())
                 })?;
 
                 // clean things up
@@ -74,7 +76,7 @@ impl QdrantInstance {
                         }
                     }
                 }
-                Ok::<(), anyhow::Error>(())
+                Ok::<(), QdrantError>(())
             })
             .unwrap();
         Ok(QdrantClient {
@@ -88,7 +90,7 @@ impl QdrantInstance {
 #[async_trait]
 impl Handler for QdrantRequest {
     type Response = QdrantResponse;
-    type Error = anyhow::Error;
+    type Error = StorageError;
 
     async fn handle(self, toc: &TableOfContent) -> Result<Self::Response, Self::Error> {
         match self {
@@ -113,7 +115,7 @@ impl Handler for QdrantRequest {
 }
 
 /// Start Qdrant and get TableOfContent.
-fn start_qdrant(config_path: Option<String>) -> anyhow::Result<(Arc<TableOfContent>, Handle)> {
+fn start_qdrant(config_path: Option<String>) -> Result<(Arc<TableOfContent>, Handle), QdrantError> {
     let settings = Settings::new(config_path).expect("Failed to load settings");
 
     memory::madvise::set_global(settings.storage.mmap_advice);
