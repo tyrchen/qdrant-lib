@@ -69,10 +69,7 @@ impl QdrantClient {
     /// List all collections.
     pub async fn list_collections(&self) -> Result<Vec<String>, QdrantError> {
         match send_request(&self.tx, CollectionRequest::List.into()).await {
-            Ok(QdrantResponse::Collection(CollectionResponse::List(v))) => {
-                let res = v.collections.into_iter().map(|v| v.name).collect();
-                Ok(res)
-            }
+            Ok(QdrantResponse::Collection(CollectionResponse::List(v))) => Ok(v),
             Err(e) => Err(e),
             res => panic!("Unexpected response: {:?}", res),
         }

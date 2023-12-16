@@ -1,9 +1,5 @@
 use super::ColName;
 use crate::{Handler, QdrantRequest};
-use api::grpc::{
-    models::{CollectionDescription, CollectionsResponse},
-    qdrant::{DeleteAlias, RenameAlias},
-};
 use async_trait::async_trait;
 use collection::{
     operations::{
@@ -12,13 +8,12 @@ use collection::{
     },
     shards::shard::ShardId,
 };
-use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use storage::content_manager::{
     collection_meta_ops::{
         AliasOperations, ChangeAliasesOperation, CollectionMetaOperations, CreateAlias,
-        CreateCollection, CreateCollectionOperation, DeleteCollectionOperation, UpdateCollection,
-        UpdateCollectionOperation,
+        CreateCollection, CreateCollectionOperation, DeleteAlias, DeleteCollectionOperation,
+        RenameAlias, UpdateCollection, UpdateCollectionOperation,
     },
     errors::StorageError,
     toc::TableOfContent,
@@ -56,7 +51,7 @@ pub enum AliasRequest {
 #[derive(Debug, Serialize)]
 pub enum CollectionResponse {
     /// list collections
-    List(CollectionsResponse),
+    List(Vec<String>),
     /// collection info
     Get(CollectionInfo),
     /// creation status
@@ -90,10 +85,8 @@ impl Handler for CollectionRequest {
     async fn handle(self, toc: &TableOfContent) -> Result<Self::Response, Self::Error> {
         match self {
             CollectionRequest::List => {
-                let collections = do_list_collections(toc).await;
-                Ok(CollectionResponse::List(CollectionsResponse {
-                    collections,
-                }))
+                let collections = toc.all_collections().await;
+                Ok(CollectionResponse::List(collections))
             }
             CollectionRequest::Get(name) => {
                 let collection = do_get_collection(toc, &name, None).await?;
@@ -224,14 +217,6 @@ async fn do_list_collection_aliases(
         });
     }
     Ok(CollectionsAliasesResponse { aliases })
-}
-
-async fn do_list_collections(toc: &TableOfContent) -> Vec<CollectionDescription> {
-    toc.all_collections()
-        .await
-        .into_iter()
-        .map(|name| CollectionDescription { name })
-        .collect_vec()
 }
 
 async fn do_get_collection(

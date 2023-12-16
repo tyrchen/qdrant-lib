@@ -2631,14 +2631,12 @@ name = "qdrant-lib"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "api",
  "async-trait",
  "collection",
  "common",
  "config",
  "futures",
  "futures-util",
- "itertools 0.12.0",
  "llm-sdk",
  "memory",
  "segment",
