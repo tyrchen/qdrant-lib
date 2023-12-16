@@ -1,12 +1,9 @@
-use super::ColName;
+use super::{shard_selector, ColName};
 use crate::{Handler, QdrantRequest};
 use async_trait::async_trait;
-use collection::{
-    operations::{
-        shard_selector_internal::ShardSelectorInternal,
-        types::{AliasDescription, CollectionInfo, CollectionsAliasesResponse},
-    },
-    shards::shard::ShardId,
+use collection::operations::{
+    shard_key_selector::ShardKeySelector,
+    types::{AliasDescription, CollectionInfo, CollectionsAliasesResponse},
 };
 use serde::{Deserialize, Serialize};
 use storage::content_manager::{
@@ -222,14 +219,11 @@ async fn do_list_collection_aliases(
 async fn do_get_collection(
     toc: &TableOfContent,
     name: &str,
-    shard_selection: Option<ShardId>,
+    shard_key: Option<ShardKeySelector>,
 ) -> Result<CollectionInfo, StorageError> {
     let collection = toc.get_collection(name).await?;
 
-    let shard_selection = match shard_selection {
-        None => ShardSelectorInternal::All,
-        Some(shard_id) => ShardSelectorInternal::ShardId(shard_id),
-    };
+    let shard = shard_selector(shard_key);
 
-    Ok(collection.info(&shard_selection).await?)
+    Ok(collection.info(&shard).await?)
 }

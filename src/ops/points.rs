@@ -1,4 +1,4 @@
-use super::ColName;
+use super::{shard_selector, ColName};
 use crate::{Handler, QdrantRequest};
 use async_trait::async_trait;
 use collection::{
@@ -10,7 +10,7 @@ use collection::{
         },
         shard_key_selector::ShardKeySelector,
         shard_selector_internal::ShardSelectorInternal,
-        types::{CountRequest, CountResult, UpdateResult},
+        types::{CountRequest, CountResult, PointRequest, Record, UpdateResult},
         vector_ops::{DeleteVectors, UpdateVectors, UpdateVectorsOp, VectorOperations},
         CollectionUpdateOperations,
     },
@@ -21,8 +21,9 @@ use storage::content_manager::{errors::StorageError, toc::TableOfContent};
 
 #[derive(Debug, Deserialize)]
 pub enum PointsRequest {
-    // get points with given info
-    // Get(GetPoints),
+    /// get points with given info
+    Get((ColName, PointRequest)),
+    /// count points for given collection
     Count((ColName, CountRequest)),
     /// delete points with given info
     Delete((ColName, PointsSelector)),
@@ -46,6 +47,8 @@ pub enum PointsRequest {
 
 #[derive(Debug, Serialize)]
 pub enum PointsResponse {
+    /// get points result
+    Get(Vec<Record>),
     /// count status
     Count(CountResult),
     /// delete status
@@ -73,19 +76,24 @@ impl Handler for PointsRequest {
 
     async fn handle(self, toc: &TableOfContent) -> Result<Self::Response, Self::Error> {
         match self {
+            PointsRequest::Get((col_name, request)) => {
+                let PointRequest {
+                    point_request,
+                    shard_key,
+                } = request;
+
+                let shard = shard_selector(shard_key);
+                let ret = toc.retrieve(&col_name, point_request, None, shard).await?;
+                Ok(PointsResponse::Get(ret))
+            }
             PointsRequest::Count((col_name, request)) => {
                 let CountRequest {
                     count_request,
                     shard_key,
                 } = request;
 
-                let shard_selector = match shard_key {
-                    None => ShardSelectorInternal::All,
-                    Some(shard_keys) => ShardSelectorInternal::from(shard_keys),
-                };
-                let ret = toc
-                    .count(&col_name, count_request, None, shard_selector)
-                    .await?;
+                let shard = shard_selector(shard_key);
+                let ret = toc.count(&col_name, count_request, None, shard).await?;
                 Ok(PointsResponse::Count(ret))
             }
             PointsRequest::Delete((col_name, selector)) => {

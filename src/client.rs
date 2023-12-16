@@ -7,9 +7,9 @@ use collection::operations::{
     payload_ops::{DeletePayload, SetPayload},
     point_ops::{PointStruct, PointsSelector},
     types::{
-        CollectionInfo, CountRequest, CountRequestInternal, PointGroup, RecommendGroupsRequest,
-        RecommendRequest, RecommendRequestBatch, SearchGroupsRequest, SearchRequest,
-        SearchRequestBatch, UpdateResult, VectorsConfig,
+        CollectionInfo, CountRequest, CountRequestInternal, PointGroup, PointRequest,
+        RecommendGroupsRequest, RecommendRequest, RecommendRequestBatch, Record,
+        SearchGroupsRequest, SearchRequest, SearchRequestBatch, UpdateResult, VectorsConfig,
     },
     vector_ops::{DeleteVectors, PointVectors, UpdateVectors},
 };
@@ -178,6 +178,20 @@ impl QdrantClient {
         let msg = AliasRequest::Rename((old_alias_name.into(), new_alias_name.into()));
         match send_request(&self.tx, msg.into()).await {
             Ok(QdrantResponse::Alias(AliasResponse::Rename(v))) => Ok(v),
+            Err(e) => Err(e),
+            res => panic!("Unexpected response: {:?}", res),
+        }
+    }
+
+    /// get points from collection
+    pub async fn get_points(
+        &self,
+        collection_name: impl Into<String>,
+        data: PointRequest,
+    ) -> Result<Vec<Record>, QdrantError> {
+        let msg = PointsRequest::Get((collection_name.into(), data));
+        match send_request(&self.tx, msg.into()).await {
+            Ok(QdrantResponse::Points(PointsResponse::Get(v))) => Ok(v),
             Err(e) => Err(e),
             res => panic!("Unexpected response: {:?}", res),
         }

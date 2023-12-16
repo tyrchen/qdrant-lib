@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use super::ColName;
+use super::{shard_selector, ColName};
 use crate::{Handler, QdrantRequest};
 use async_trait::async_trait;
 use collection::{
@@ -64,16 +64,13 @@ impl Handler for QueryRequest {
                     shard_key,
                 } = request;
 
-                let shard_selection = match shard_key {
-                    None => ShardSelectorInternal::All,
-                    Some(shard_keys) => shard_keys.into(),
-                };
+                let shard = shard_selector(shard_key);
                 let res = do_core_search_points(
                     toc,
                     &collection_name,
                     search_request.into(),
                     None,
-                    shard_selection,
+                    shard,
                     None,
                 )
                 .await?;
@@ -88,13 +85,10 @@ impl Handler for QueryRequest {
                             search_request,
                             shard_key,
                         } = req;
-                        let shard_selection = match shard_key {
-                            None => ShardSelectorInternal::All,
-                            Some(shard_keys) => shard_keys.into(),
-                        };
+                        let shard = shard_selector(shard_key);
                         let core_request: CoreSearchRequest = search_request.into();
 
-                        (core_request, shard_selection)
+                        (core_request, shard)
                     })
                     .collect();
 
@@ -108,16 +102,13 @@ impl Handler for QueryRequest {
                     shard_key,
                 } = request;
 
-                let shard_selection = match shard_key {
-                    None => ShardSelectorInternal::All,
-                    Some(shard_keys) => shard_keys.into(),
-                };
+                let shard = shard_selector(shard_key);
                 let res = do_search_point_groups(
                     toc,
                     &collection_name,
                     search_group_request,
                     None,
-                    shard_selection,
+                    shard,
                     None,
                 )
                 .await?;
@@ -129,18 +120,9 @@ impl Handler for QueryRequest {
                     shard_key,
                 } = request;
 
-                let shard_selection = match shard_key {
-                    None => ShardSelectorInternal::All,
-                    Some(shard_keys) => shard_keys.into(),
-                };
+                let shard = shard_selector(shard_key);
                 let res = toc
-                    .recommend(
-                        &collection_name,
-                        recommend_request,
-                        None,
-                        shard_selection,
-                        None,
-                    )
+                    .recommend(&collection_name, recommend_request, None, shard, None)
                     .await?;
                 Ok(QueryResponse::Recommend(res))
             }
@@ -155,16 +137,13 @@ impl Handler for QueryRequest {
                     shard_key,
                 } = request;
 
-                let shard_selection = match shard_key {
-                    None => ShardSelectorInternal::All,
-                    Some(shard_keys) => shard_keys.into(),
-                };
+                let shard = shard_selector(shard_key);
                 let res = do_recommend_point_groups(
                     toc,
                     &collection_name,
                     recommend_group_request,
                     None,
-                    shard_selection,
+                    shard,
                     None,
                 )
                 .await?;
@@ -315,12 +294,9 @@ async fn do_recommend_batch_points(
         .searches
         .into_iter()
         .map(|req| {
-            let shard_selector = match req.shard_key {
-                None => ShardSelectorInternal::All,
-                Some(shard_key) => ShardSelectorInternal::from(shard_key),
-            };
+            let shard = shard_selector(req.shard_key);
 
-            (req.recommend_request, shard_selector)
+            (req.recommend_request, shard)
         })
         .collect();
 
