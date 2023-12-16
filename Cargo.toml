@@ -8,7 +8,6 @@ edition = "2021"
 [dependencies]
 async-trait = "0.1.74"
 collection = { path = "./.modules/qdrant/lib/collection" }
-common = { path = "./.modules/qdrant/lib/common/common" }
 config = "0.13.4"
 futures = "0.3.29"
 futures-util = "0.3.29"
