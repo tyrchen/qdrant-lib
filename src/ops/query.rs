@@ -25,13 +25,13 @@ pub enum QueryRequest {
     Search((ColName, SearchRequest)),
     /// search for vectors in batch
     SearchBatch((ColName, SearchRequestBatch)),
-    /// search for groups
+    /// search group by
     SearchGroup((ColName, SearchGroupsRequest)),
     /// recommend points
     Recommend((ColName, RecommendRequest)),
     /// recommend points in batch
     RecommendBatch((ColName, RecommendRequestBatch)),
-    /// recommend for groups
+    /// recommend group by
     RecommendGroup((ColName, RecommendGroupsRequest)),
 }
 
@@ -41,13 +41,13 @@ pub enum QueryResponse {
     Search(Vec<ScoredPoint>),
     /// search result in batch
     SearchBatch(Vec<Vec<ScoredPoint>>),
-    /// search group result
+    /// search group by result
     SearchGroup(GroupsResult),
     /// recommend result
     Recommend(Vec<ScoredPoint>),
     /// recommend result in batch
     RecommendBatch(Vec<Vec<ScoredPoint>>),
-    /// recommend group result
+    /// recommend group by result
     RecommendGroup(GroupsResult),
 }
 

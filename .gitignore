@@ -1,3 +1,4 @@
 /target
 .storage
 .snapshots
+.DS_Store

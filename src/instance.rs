@@ -37,7 +37,7 @@ pub enum QdrantResponse {
 pub struct QdrantInstance;
 
 impl QdrantInstance {
-    pub fn start(config_path: Option<String>) -> Result<QdrantClient, QdrantError> {
+    pub fn start(config_path: Option<String>) -> Result<Arc<QdrantClient>, QdrantError> {
         let (tx, mut rx) = mpsc::channel::<QdrantMsg>(QDRANT_CHANNEL_BUFFER);
 
         let (terminated_tx, terminated_rx) = oneshot::channel::<()>();
@@ -79,11 +79,11 @@ impl QdrantInstance {
                 Ok::<(), QdrantError>(())
             })
             .unwrap();
-        Ok(QdrantClient {
+        Ok(Arc::new(QdrantClient {
             tx: ManuallyDrop::new(tx),
             handle,
             terminated_rx,
-        })
+        }))
     }
 }
 
