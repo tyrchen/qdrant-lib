@@ -124,3 +124,7 @@ For more detailed usage, refer to the [examples](./examples/) folder. It include
 Currently, the library employs a modified version of the original Qdrant code. As a standalone library, minimizing unnecessary dependencies is crucial. However, the original Qdrant codebase includes several dependencies that are redundant for the library's purposes. For instance, the `collection` crate depends on `actix-web-validator`, which in turn introduces the entire `actix` ecosystem into the library. To circumvent this, we've eliminated the `actix-web-validator` dependency, opting instead to integrate the pertinent code directly into the collection crate ([code](https://github.com/tyrchen/qdrant/commit/9369c87d0743f2122d3129d4091ef0b9c29a1375)). While this is not an ideal solution, we plan to explore more optimal alternatives in the future.
 
 Additionally, there are other dependencies, particularly `tonic` in the `api` crate, that I intend to remove. This has not yet been accomplished, but it is part of our strategic plan moving forward.
+
+## License
+
+For information regarding the licensing, please refer to the [Qdrant License](https://github.com/qdrant/qdrant/blob/master/LICENSE) available on their GitHub repo. As of the current date, it is under the Apache 2.0 License.

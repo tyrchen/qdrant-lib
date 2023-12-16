@@ -3,6 +3,7 @@ use collection::operations::types::{SearchRequest, SearchRequestInternal};
 use llm_sdk::{EmbeddingRequest, LlmSdk};
 use qdrant_lib::QdrantInstance;
 use segment::types::WithPayloadInterface;
+use std::env;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 const COLLECTION_NAME: &str = "wikipedia";
@@ -19,7 +20,7 @@ async fn main() -> Result<()> {
 
     let client = QdrantInstance::start(None)?;
 
-    let sdk = LlmSdk::new(env!("OPENAI_API_KEY"));
+    let sdk = LlmSdk::new(env::var("OPENAI_API_KEY")?);
     let embeddings = sdk
         .embedding(EmbeddingRequest::new("What is the capital of France?"))
         .await?
