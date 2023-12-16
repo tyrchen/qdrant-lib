@@ -85,7 +85,7 @@ loop {
 The library is currently in active development. To use it, simply add the following line to your `Cargo.toml` file:
 
 ```toml
-qdrant-lib = "0.x.y"
+qdrant-lib = { git = "https://github.com/tyrchen/qdrant-lib", tag = "v0.x.y" }
 ```
 
 Then you could use it in your code:
