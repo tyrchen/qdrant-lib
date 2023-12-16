@@ -24,6 +24,8 @@ However, the following service/cluster-related APIs will not be included in the 
 
 Qdrant's core architecture comprises components such as collection, memory, segment, and storage. The primary data structure we need to initialize is `TableOfContent`. Once we establish a method to create this structure, our next step is to integrate its functionality with the public-facing client APIs. However, since `TableOfContent` initiates multiple Tokio runtimes for indexing and searching, it cannot be operated directly under a standard `#[tokio::main]` application. To resolve this, we instantiate `TableOfContent` in a dedicated thread and facilitate communication through Tokio mpsc channels. All public-facing APIs function by internally dispatching messages to the dedicated thread and then awaiting the response.
 
+![arch](docs/images/arch.jpg)
+
 Users can initiate a Qdrant instance in the following manner:
 
 ```rust

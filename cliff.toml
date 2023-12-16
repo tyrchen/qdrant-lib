@@ -18,7 +18,7 @@ body = """
 {% for group, commits in commits | group_by(attribute="group") %}
     ### {{ group | upper_first }}
     {% for commit in commits %}
-        - {{ commit.message | upper_first }} ([{{ commit.id | truncate(length=7, end="") }}]({{ commit.id }}) - {{ commit.author.timestamp | date }} by {{ commit.author.name }})\
+        - {{ commit.message | trim }} ([{{ commit.id | truncate(length=7, end="") }}]({{ commit.id }}))\
     {% endfor %}
 {% endfor %}\n
 """
