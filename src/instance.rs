@@ -49,10 +49,13 @@ impl QdrantInstance {
                 let toc_clone = toc.clone();
                 rt.block_on(async move {
                     while let Some((msg, resp_sender)) = rx.recv().await {
-                        let res = msg.handle(&toc).await;
-                        if let Err(e) = resp_sender.send(res) {
-                            warn!("Failed to send response: {:?}", e);
-                        }
+                        let toc_clone = toc.clone();
+                        tokio::spawn(async move {
+                            let res = msg.handle(&toc_clone).await;
+                            if let Err(e) = resp_sender.send(res) {
+                                warn!("Failed to send response: {:?}", e);
+                            }
+                        });
                     }
                     Ok::<(), QdrantError>(())
                 })?;

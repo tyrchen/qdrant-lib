@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [unreleased]
+
+### Features
+
+- spawn a new task for message processing for maximum concurrency ([44a9834](44a98340e7f8755959a9d581d8c37a2c691aac7f))
+
 ## [0.1.1] - 2023-12-16
 
 ### Bug Fixes

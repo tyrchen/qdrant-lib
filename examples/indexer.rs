@@ -3,20 +3,23 @@ use std::{
     io::{BufRead, BufReader},
     mem,
     num::NonZeroU64,
+    sync::Arc,
+    time::Instant,
 };
 
 use anyhow::Result;
 use collection::operations::{point_ops::PointStruct, types::VectorParams};
-use qdrant_lib::QdrantInstance;
+use qdrant_lib::{QdrantClient, QdrantInstance};
 use segment::types::{Distance, Payload};
 use serde_json::{json, Value};
+use tokio::task::JoinHandle;
 use tracing::info;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use zip::ZipArchive;
 
 const OPENAI_EMBEDDING_DIM: u64 = 1536;
 const COLLECTION_NAME: &str = "wikipedia";
-const BATCH_SIZE: usize = 8 * 1024;
+const BATCH_SIZE: usize = 10000;
 
 struct EmbeddingItem {
     id: u64,
@@ -57,6 +60,7 @@ async fn main() -> Result<()> {
     let reader = BufReader::new(file);
     let mut total = 0usize;
     let mut batch = Vec::with_capacity(BATCH_SIZE);
+    let mut tasks = vec![];
     for line in reader.lines() {
         let data: Vec<Value> = serde_json::from_str(&line?)?;
         let doc = data[0]["input"].as_str().unwrap().to_string();
@@ -70,25 +74,47 @@ async fn main() -> Result<()> {
         total += 1;
         let point: PointStruct = EmbeddingItem::new(total as _, doc, embedding).into();
         batch.push(point);
+
         if total % BATCH_SIZE == 0 {
-            client
-                .upsert_points(COLLECTION_NAME, mem::take(&mut batch))
-                .await?;
-            info!("Loaded {} embeddings", total);
+            let batch_to_process = mem::take(&mut batch);
+            let client_clone = client.clone();
+            let task = create_index_task(client_clone, batch_to_process, total);
+            tasks.push(task);
         }
     }
 
     if !batch.is_empty() {
-        client
-            .upsert_points(COLLECTION_NAME, mem::take(&mut batch))
-            .await?;
-        info!("Loaded {} embeddings", total);
+        let client_clone = client.clone();
+        let task = create_index_task(client_clone, batch, total);
+        tasks.push(task);
+    }
+
+    info!("Wait for {} tasks to finish", tasks.len());
+    for task in tasks {
+        task.await??;
     }
 
     let ret = client.count_points(COLLECTION_NAME, None, true).await?;
     info!("Total points: {}", ret);
 
     Ok(())
+}
+
+fn create_index_task(
+    client: Arc<QdrantClient>,
+    data: Vec<PointStruct>,
+    total: usize,
+) -> JoinHandle<Result<()>> {
+    tokio::spawn(async move {
+        let start = Instant::now();
+        client.upsert_points(COLLECTION_NAME, data).await?;
+        info!(
+            "Loaded {} embeddings in {}ms",
+            total,
+            start.elapsed().as_millis()
+        );
+        Ok::<(), anyhow::Error>(())
+    })
 }
 
 impl EmbeddingItem {
