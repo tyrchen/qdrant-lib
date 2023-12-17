@@ -82,7 +82,7 @@ loop {
 }
 ```
 
-## Hot to use?
+## How to use?
 
 The library is currently in active development. To use it, simply add the following line to your `Cargo.toml` file:
 
