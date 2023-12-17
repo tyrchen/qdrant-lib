@@ -5,21 +5,37 @@
 # changelog header
 header = """
 # Changelog\n
-All notable changes to this project will be documented in this file.\n
+All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.\n
 """
 # template for the changelog body
 # https://keats.github.io/tera/docs/#introduction
 body = """
+---
 {% if version %}\
-    ## [{{ version | trim_start_matches(pat="v") }}] - {{ timestamp | date(format="%Y-%m-%d") }}
+    {% if previous.version %}\
+        ## [{{ version | trim_start_matches(pat="v") }}]($REPO/compare/{{ previous.version }}..{{ version }}) - {{ timestamp | date(format="%Y-%m-%d") }}
+    {% else %}\
+        ## [{{ version | trim_start_matches(pat="v") }}] - {{ timestamp | date(format="%Y-%m-%d") }}
+    {% endif %}\
 {% else %}\
     ## [unreleased]
 {% endif %}\
 {% for group, commits in commits | group_by(attribute="group") %}
-    ### {{ group | upper_first }}
-    {% for commit in commits %}
-        - {{ commit.message | trim }} ([{{ commit.id | truncate(length=7, end="") }}]({{ commit.id }}))\
-    {% endfor %}
+    ### {{ group | striptags | trim | upper_first }}
+    {% for commit in commits
+    | filter(attribute="scope")
+    | sort(attribute="scope") %}
+        - **({{commit.scope}})**{% if commit.breaking %} [**breaking**]{% endif %} \
+            {{ commit.message|trim }} - ([{{ commit.id | truncate(length=7, end="") }}]($REPO/commit/{{ commit.id }})) - {{ commit.author.name }}
+    {%- endfor -%}
+    {% raw %}\n{% endraw %}\
+    {%- for commit in commits %}
+        {%- if commit.scope -%}
+        {% else -%}
+            - {% if commit.breaking %} [**breaking**]{% endif %}\
+                {{ commit.message|trim }} - ([{{ commit.id | truncate(length=7, end="") }}]($REPO/commit/{{ commit.id }})) - {{ commit.author.name }}
+        {% endif -%}
+    {% endfor -%}
 {% endfor %}\n
 """
 # template for the changelog footer
@@ -28,7 +44,10 @@ footer = """
 """
 # remove the leading and trailing whitespace from the templates
 trim = true
-
+# postprocessors
+postprocessors = [
+  { pattern = '\$REPO', replace = "https://github.com/tyrchen/qdrant-lib" }, # replace repository URL
+]
 
 [git]
 # parse the commits based on https://www.conventionalcommits.org
@@ -37,18 +56,24 @@ conventional_commits = true
 filter_unconventional = false
 # process each line of a commit as an individual commit
 split_commits = false
+# regex for preprocessing the commit messages
+commit_preprocessors = [
+  # { pattern = '\((\w+\s)?#([0-9]+)\)', replace = "([#${2}](https://github.com/orhun/git-cliff/issues/${2}))"}, # replace issue numbers
+]
 # regex for parsing and grouping commits
 commit_parsers = [
   { message = "\\[skip", skip = true },
+  { message = "\\p{Han}", skip = true },
   { message = "^feat", group = "Features" },
   { message = "^fix", group = "Bug Fixes" },
   { message = "^doc", group = "Documentation" },
   { message = "^perf", group = "Performance" },
-  { message = "^refactor", group = "Refactor" },
-  { message = "^style", group = "Styling" },
-  { message = "^test", group = "Testing" },
-  { message = "^chore\\(release\\): prepare for", skip = true },
-  { message = "^chore", group = "Miscellaneous Tasks" },
+  { message = "^refactor", group = "Refactoring" },
+  { message = "^style", group = "Style" },
+  { message = "^revert", group = "Revert" },
+  { message = "^test", group = "Tests" },
+  { message = "^chore\\(version\\):", skip = true },
+  { message = "^chore", group = "Miscellaneous Chores" },
   { message = ".*", group = "Other" },
   { body = ".*security", group = "Security" },
 ]
@@ -66,3 +91,5 @@ ignore_tags = ""
 topo_order = false
 # sort the commits inside sections by oldest/newest order
 sort_commits = "oldest"
+# limit the number of commits included in the changelog.
+# limit_commits = 42
