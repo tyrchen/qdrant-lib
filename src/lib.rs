@@ -9,16 +9,21 @@ use std::backtrace::Backtrace;
 use std::mem::ManuallyDrop;
 use std::panic;
 use std::thread::JoinHandle;
-use storage::content_manager::errors::StorageError;
 use storage::content_manager::toc::TableOfContent;
 use tokio::sync::{mpsc, oneshot};
 use tracing::error;
 
+pub use collection::operations::types::{
+    PointRequest, PointRequestInternal, SearchRequest, SearchRequestInternal,
+};
+pub use collection::operations::{point_ops::PointStruct, types::VectorParams};
 pub use config::Settings;
 pub use error::QdrantError;
 pub use instance::QdrantInstance;
 pub use instance::{QdrantRequest, QdrantResponse};
 pub use ops::*;
+pub use segment::types::{Distance, Payload, WithPayloadInterface};
+pub use storage::content_manager::errors::StorageError;
 
 type QdrantMsg = (QdrantRequest, QdrantResponder);
 type QdrantResult = Result<QdrantResponse, StorageError>;
