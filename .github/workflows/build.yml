@@ -30,7 +30,7 @@ jobs:
         uses: taiki-e/install-action@cargo-llvm-cov
       - name: install nextest
         uses: taiki-e/install-action@nextest
-      - uses: Swatinem/rust-cache@v1
+      - uses: Swatinem/rust-cache@v2
       - name: Install Protoc
         uses: arduino/setup-protoc@v2
       - name: Check code format
