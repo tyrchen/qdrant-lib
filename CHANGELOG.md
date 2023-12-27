@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 ---
+## [0.1.3](https://github.com/tyrchen/qdrant-lib/compare/v0.1.2..v0.1.3) - 2023-12-27
+
+### Bug Fixes
+
+- export more types (#2) - ([5dee654](https://github.com/tyrchen/qdrant-lib/commit/5dee65439299057d865ae300a0008680d20aed16)) - zack.shen
+
+### Miscellaneous Chores
+
+- update to latest qdrant and fix build errors - ([f7883f0](https://github.com/tyrchen/qdrant-lib/commit/f7883f00b5814b6ecdcf9dbffba67eeadc3edc56)) - Tyr Chen
+
+---
 ## [0.1.2](https://github.com/tyrchen/qdrant-lib/compare/v0.1.1..v0.1.2) - 2023-12-17
 
 ### Features
@@ -14,7 +25,7 @@ All notable changes to this project will be documented in this file. See [conven
 - Merge pull request #1 from WSL0809/master
 
 Update README.md - ([32caa14](https://github.com/tyrchen/qdrant-lib/commit/32caa14199fbeb8193b764440356a26389624510)) - Tyr Chen
-- use cocogitto cliff config to properly show commit url - ([e5e714d](https://github.com/tyrchen/qdrant-lib/commit/e5e714de04d98ec6eb393a032cbb870f89061187)) - Tyr Chen
+- use cocogitto cliff config to properly show commit url - ([37df61c](https://github.com/tyrchen/qdrant-lib/commit/37df61ce7aa524fa229a770bca4fda999228d1d2)) - Tyr Chen
 
 ---
 ## [0.1.1] - 2023-12-16
