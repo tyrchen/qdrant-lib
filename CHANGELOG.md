@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 ---
+## [0.1.4](https://github.com/tyrchen/qdrant-lib/compare/v0.1.3..v0.1.4) - 2024-01-01
+
+### Miscellaneous Chores
+
+- more exports - ([21a79d5](https://github.com/tyrchen/qdrant-lib/commit/21a79d556fb19bfe52747270512f2779ef593e92)) - Tyr Chen
+
+### Other
+
+- Update CHANGELOG.md - ([236df89](https://github.com/tyrchen/qdrant-lib/commit/236df890aa0b2f619639476809f2dec2213ef8be)) - Tyr Chen
+
+---
 ## [0.1.3](https://github.com/tyrchen/qdrant-lib/compare/v0.1.2..v0.1.3) - 2023-12-27
 
 ### Bug Fixes
