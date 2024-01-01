@@ -7,8 +7,8 @@ use collection::operations::{
     payload_ops::{DeletePayload, SetPayload},
     point_ops::{PointStruct, PointsSelector},
     types::{
-        CollectionInfo, CountRequest, CountRequestInternal, PointGroup, PointRequest,
-        RecommendGroupsRequest, RecommendRequest, RecommendRequestBatch, Record,
+        CollectionError, CollectionInfo, CountRequest, CountRequestInternal, PointGroup,
+        PointRequest, RecommendGroupsRequest, RecommendRequest, RecommendRequestBatch, Record,
         SearchGroupsRequest, SearchRequest, SearchRequestBatch, UpdateResult, VectorsConfig,
     },
     vector_ops::{DeleteVectors, PointVectors, UpdateVectors},
@@ -79,9 +79,10 @@ impl QdrantClient {
     pub async fn get_collection(
         &self,
         name: impl Into<String>,
-    ) -> Result<CollectionInfo, QdrantError> {
+    ) -> Result<Option<CollectionInfo>, QdrantError> {
         match send_request(&self.tx, CollectionRequest::Get(name.into()).into()).await {
-            Ok(QdrantResponse::Collection(CollectionResponse::Get(v))) => Ok(v),
+            Ok(QdrantResponse::Collection(CollectionResponse::Get(v))) => Ok(Some(v)),
+            Err(QdrantError::Collection(CollectionError::NotFound { .. })) => Ok(None),
             Err(e) => Err(e),
             res => panic!("Unexpected response: {:?}", res),
         }

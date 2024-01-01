@@ -25,6 +25,11 @@ pub use ops::*;
 pub use segment::types::{Distance, Payload, WithPayloadInterface};
 pub use storage::content_manager::errors::StorageError;
 
+//re-exports
+pub use collection;
+pub use segment;
+pub use storage;
+
 type QdrantMsg = (QdrantRequest, QdrantResponder);
 type QdrantResult = Result<QdrantResponse, StorageError>;
 type QdrantResponder = oneshot::Sender<QdrantResult>;
